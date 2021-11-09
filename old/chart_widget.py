@@ -4,10 +4,11 @@ from PySide6.QtCharts import *
 
 import pandas as pd
 import numpy as np
+from population import Population
 
 
 class ChartWidget:
-    def __init__(self, widget, data: pd.DataFrame):
+    def __init__(self, widget, population: Population):
         super().__init__()
         self.widget = widget
         self.chart = QChart()
@@ -18,27 +19,30 @@ class ChartWidget:
         self._bar_series.setBarWidth(1.0)
         self.set = QBarSet("Dataset")
 
-        self._data = data
+        self._population = population
         self._classes_count = 10
 
         # add new chart to parent widget
         self.widget.addWidget(self._chart_view)
 
     def add_chart(self):
+        
+        df = self._population.population_
 
-        data = self._data
-        data = data.iloc[:, 0].to_list()
+        self._classes_count = 10#len(data) // 10
 
         # make_histogram
-        min = np.min(data)
-        max = np.max(data)
-        step = (max - min) / self._classes_count
+        min = df['X'].min()
+        max = df["X"].max()
+        h = (max - min) / self._classes_count
 
-        classes = np.zeros(self._classes_count + 1)
+        classes = np.zeros(self._classes_count)
 
-        for x in data:
-            idx = int((x - min) / step)
-            classes[idx] += 1
+        for idx, vidx in enumerate(df.index[:-1]):
+            row = df.loc[vidx]
+            idx = int((row['X'] - min) / h)
+            classes[idx] += row['freq']
+        classes[-1]+=int(df.tail(1)['freq'])
 
         self.set.append(list(classes))
         self._bar_series.append(self.set)
