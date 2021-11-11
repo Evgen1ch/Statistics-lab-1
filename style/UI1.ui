@@ -24,7 +24,11 @@
           <item>
            <layout class="QHBoxLayout" name="inputFilenameLayout">
             <item>
-             <widget class="QLineEdit" name="filenameLineEdit"/>
+             <widget class="QLineEdit" name="filenameLineEdit">
+              <property name="text">
+               <string>data_lab1\70\norm.txt</string>
+              </property>
+             </widget>
             </item>
             <item>
              <widget class="QPushButton" name="pushButton">

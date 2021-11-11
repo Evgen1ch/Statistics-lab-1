@@ -233,6 +233,7 @@ class Ui_MainWindow(object):
 
     def retranslateUi(self, MainWindow):
         MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"MainWindow", None))
+        self.filenameLineEdit.setText(QCoreApplication.translate("MainWindow", u"data_lab1\\70\\norm.txt", None))
         self.pushButton.setText(QCoreApplication.translate("MainWindow", u"Load", None))
         self.filenamePushButton.setText(QCoreApplication.translate("MainWindow", u"Browse...", None))
         self.restoreCumulativePushButton.setText(QCoreApplication.translate("MainWindow", u"Vosstanovit`", None))
