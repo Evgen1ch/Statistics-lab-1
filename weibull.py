@@ -65,12 +65,12 @@ def restore_veibull_distribution(data, cdf, error=0.05):
     dispersion_b = DC[0][0]
     dispersion_a = DC[1][1]
 
-    t = sts.t.ppf(1.0 - error / 2.0, df=N)
+    t = sts.t.ppf(1.0 - error / 2.0, df=N-1)
     stdb = np.sqrt(dispersion_b)
     stda = np.sqrt(dispersion_a)
     confidence_interval_b = (b - t * stdb, b + t * stdb)
     confidence_interval_a = (a - t * stda, a + t * stda)
-    return a, b, confidence_interval_a, confidence_interval_b
+    return a, b, confidence_interval_a, confidence_interval_b, stda, stdb
 
 def chi_square_test(x, a, b, error, bins):
     N = len(x)
@@ -86,6 +86,10 @@ def chi_square_test(x, a, b, error, bins):
 
     chi2 = np.sum(((obs_freq - exp_freq)**2) / exp_freq)
     crit_chi2 = sts.chi2.ppf(1.0-error, df=bins)
+    p = 1.0 - sts.chi2.cdf(chi2, df=bins)
     if(chi2 <= crit_chi2):
-        return (True, chi2, crit_chi2)
-    return (False, chi2, crit_chi2)
+        return (True, chi2, crit_chi2, p)
+    return (False, chi2, crit_chi2, p)
+
+def calculate_paper_axes(x, y):
+    return (np.log(x), np.log(-np.log(1.0 - y)))

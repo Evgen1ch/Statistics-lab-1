@@ -1,16 +1,17 @@
 import pandas as pd
 import numpy as np
 import scipy.stats as sts
-from numpy import linalg
+from utils import *
+from my_statistics import Mean, Median, Std, Skew, Kurtosis
 
 
 class Distribution:
     def __init__(self, data: pd.DataFrame):
         self.raw_data_ = data
-        self.init_()
+        self.setup()
         pass
 
-    def init_(self):
+    def setup(self):
         # transforming dataframe into population
         data = self.raw_data_
         df = data[0]
@@ -22,12 +23,11 @@ class Distribution:
         df["rel-freq"] = values / sm
         df = df.reset_index().rename(columns={'index': 'x', 0: 'freq'})
         df = df.sort_values(by='x').reset_index(drop=True)
-        df["cumulative-probability"] = df['rel-freq'].cumsum()
+        df["cdf"] = df['rel-freq'].cumsum()
 
         # collecting population statistics
         info = data.describe()
         median = data.median()
-
         # statistics 
         info = info.T
         info['median'] = median
@@ -44,28 +44,45 @@ class Distribution:
         info['CI-low'] = 0
         info['CI-high'] = 0
 
-        functions = [np.mean,
-                     np.median,
+        functions = [
                      lambda data: np.std(data, ddof=1),
                      sts.skew, 
                      sts.kurtosis,
                      lambda data: 1.0 / np.sqrt(sts.kurtosis(data) + 3.0),
                     ]
 
-        cols = ['mean', 'std', 'skewness', 'kurtosis', 'antikurtosis']
-        for i, col in enumerate(cols):
+        mean_l, mean_h, mean_std = mean_confidence_interval(self.raw_data_.iloc[:, 0], 0.05)
+        info.loc['mean', 'CI-low'] = mean_l
+        info.loc['mean', 'CI-high'] = mean_h
+        info.loc['mean', 'std'] = mean_std
+        median_l, median_h = median_confidence_interval(self.raw_data_.iloc[:, 0], 0.05)
+        info.loc['median', 'CI-low'] = median_l
+        info.loc['median', 'CI-high'] = median_h
+
+
+
+        rows = ['std', 'skewness', 'kurtosis', 'antikurtosis']
+        for i, row in enumerate(rows):
             l, h, std, _ = bootstrap(self.raw_data_.iloc[:, 0], functions[i], 1000, 0.05)
-            info.loc[col, 'CI-low'] = l
-            info.loc[col, 'CI-high'] = h
-            info.loc[col, 'std'] = std
+            info.loc[row, 'CI-low'] = l
+            info.loc[row, 'CI-high'] = h
+            info.loc[row, 'std'] = std
+
+        
 
 
         info = info.T
         info.rename({0: "value"}, inplace=True)
 
-        series = data.iloc[:, 0]
+        self.population_ = df
+        self.population_info = info
+
+    def get_classes_info(self, n: int = 0):
+        if n == 0:
+            n = calculate_classes_count(len(self.raw_data_))
+        series = self.raw_data_.iloc[:, 0]
         hist, edges = np.histogram(
-            series, calculate_classes_count(self.size()))
+            series, n)
         classes_bounds = []
         prev = series.min()
         for edge in edges[1:]:
@@ -73,15 +90,12 @@ class Distribution:
             prev = edge
             pass
 
-        self.classes = pd.DataFrame()
-        self.classes['bounds'] = classes_bounds
-        self.classes['freq'] = hist
-        self.classes['rel-freq'] = hist / self.size()
-        self.classes['ecdf'] = self.classes['rel-freq'].cumsum()
-        self.classes['ecdf'].values[-1] = 0.999999999999997
-
-        self.population_ = df
-        self.population_info = info
+        classes = pd.DataFrame()
+        classes['bounds'] = classes_bounds
+        classes['freq'] = hist
+        classes['rel-freq'] = hist / self.size()
+        classes['ecdf'] = classes['rel-freq'].cumsum()
+        return classes
 
     def get_outliers_interval(self, k: float = 1.5) -> tuple[float, float]:
         q1: float = self.population_info['25%'].values[0]
@@ -96,25 +110,18 @@ class Distribution:
 
         self.raw_data_ = self.raw_data_[(self.raw_data_[0] > a)]
         self.raw_data_ = self.raw_data_[(self.raw_data_[0] < b)]
-        self.init_()
+        self.setup()
         pass
 
     def size(self):
-        return len(self.raw_data_)
-    pass
+        return len(self.raw_data_.index)
 
+    def raw_x(self):
+        return self.raw_data_[0].values
 
-def calculate_classes_count(n: int):
-    return int(np.log10(n)*3.32 + 1)
+    def x(self):
+        return self.population_['x'].values
+    
+    def cdf(self):
+        return self.population_['cdf'].values
 
-
-def bootstrap(data, statistic, samples, error):
-    results = []
-    for i in range(samples):
-        sample = np.random.choice(data, len(data), replace=True)
-        results.append(statistic(sample))
-
-    low = np.quantile(results, error/2.0)
-    high = np.quantile(results, 1.0 - error/2.0)
-    std = np.std(results)
-    return low, high, std, results
