@@ -1,6 +1,7 @@
 import numpy as np
 import numpy.linalg as linalg
 import scipy.stats as sts
+from utils import make_histogram
 
 def weib(x, a, b):
     return (1.0 - np.exp(-(x**b / a)))
@@ -45,36 +46,36 @@ def restore_veibull_distribution(data, cdf, error=0.05):
     y = cdf
     N = len(x)
 
-    y = np.log(np.log(1.0 / (1.0 - y)))
+    z = np.log(np.log(1.0 / (1.0 - y)))
     t = np.log(x)
     
     sumt = np.sum(t)
-    sumy = np.sum(y)
+    sumz = np.sum(z)
     sumt2= np.sum(t*t)
-    sumty = np.sum(t*y)
+    sumtz = np.sum(t*z)
 
-    b = (N * sumty - sumy * sumt) / (N * sumt2 - sumt ** 2)
-    a = (sumy - b * sumt) / N 
+    b = (N * sumtz - sumz * sumt) / (N * sumt2 - sumt ** 2)
+    a = (sumz - b * sumt) / N 
     a = np.exp(-a)      # a = -ln(a) => a = e^-a
 
     #calculating confidence intervals
-    squares = (b * t + a - y)**2
+    squares = (b * t + a - z)**2
     SS = np.sum(squares) / (N - 2)
-    DC = SS * linalg.inv(np.array([[N, sumt],[sumt, sumt2]]))
+    DC = SS * linalg.inv(np.array([[sumt2, sumt],[sumt, N]]))
 
-    dispersion_b = DC[0][0]
-    dispersion_a = DC[1][1]
+    variance_b = DC[0][0]
+    variance_a = DC[1][1]
 
     t = sts.t.ppf(1.0 - error / 2.0, df=N-1)
-    stdb = np.sqrt(dispersion_b)
-    stda = np.sqrt(dispersion_a)
+    stdb = np.sqrt(variance_b)
+    stda = np.sqrt(variance_a)
     confidence_interval_b = (b - t * stdb, b + t * stdb)
     confidence_interval_a = (a - t * stda, a + t * stda)
     return a, b, confidence_interval_a, confidence_interval_b, stda, stdb
 
 def chi_square_test(x, a, b, error, bins):
     N = len(x)
-    hist, edges = np.histogram(x, bins=bins)
+    hist, edges = make_histogram(x, bins)
     obs_freq = hist
     exp_freq = []
 

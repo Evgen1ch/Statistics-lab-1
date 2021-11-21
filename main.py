@@ -318,3 +318,18 @@ if __name__ == "__main__":
     wnd = AppWindow()
     wnd.show()
     sys.exit(app.exec())
+    # import time
+    # df = pd.read_csv('data_lab1/500/veib.txt', header=None)
+    # x = np.random.normal(0, 1, 10000)
+    # beg = time.time()
+    # bins, edges = make_histogram(x, 9)
+    # end = time.time()
+    # print("time:",end - beg)
+    # beg = time.time()
+    # binsn, edgesn = np.histogram(x, 9)
+    # end = time.time()
+    # print("time:",end - beg)
+    # print(bins)
+    # print(binsn)
+    # for e1, e2 in zip(edges, edgesn):
+    #     print(e1, e2)

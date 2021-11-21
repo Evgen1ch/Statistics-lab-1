@@ -3,6 +3,7 @@ import scipy.stats as sts
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from distribution import calculate_classes_count
+from utils import make_histogram
 from weibull import weib_density
 
 from my_statistics import *
@@ -40,16 +41,23 @@ class MatplotlibHistKDECanvas(FigureCanvas):
             classes_count = calculate_classes_count(len(data))
         self.ax.clear()
         #HIST
-        n, bins, patches = self.ax.hist(
-            data, bins=classes_count, density=True)
-        self.ax.set_xticks(bins)
+        bins, edges = make_histogram(data, classes_count, True)
+        for i in range(len(edges) - 1):
+            #self.ax.plot([edges[i], edges[i+1]], [bins[i], bins[i]], c='C0')
+            x = [edges[i], edges[i+1]]
+            y1 = [bins[i], bins[i]]
+            self.ax.fill_between(x, y1, color='C0')
+        self.ax.set_xticks(edges)
+        # n, bins, patches = self.ax.hist(
+        #     data, bins=edges, density=True)
+        # self.ax.set_xticks(bins)
         self.ax.axhline(y=0, color='k')
         self.ax.axvline(x=0, color='k')
         #KDE
         min, max = np.min(data), np.max(data)
         x = np.linspace(min, max, 500)
         kde = KDE(data, bw)
-        y = [kde.value(xi) for xi in x]
+        y = np.array([kde.value(xi) for xi in x])
         self.ax.plot(x, y, c='lightgreen', label="KDE")
         self.ax.grid()
         self.ax.set(xlabel='X', ylabel='density', title='Histogram and KDE')
